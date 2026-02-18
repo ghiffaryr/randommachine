@@ -54,10 +54,6 @@ probabilities = model.predict_proba(X_test)
 - `RandomCatBoostRegressor` - Regression with random CatBoost base learners  
 - `RandomCatBoostClassifier` - Classification with random CatBoost base learners
 
-**Heterogeneous:**
-- `HeteroBoostRegressor` - Mixes decision trees and kernel ridge regression
-- `HeteroBoostClassifier` - Mixes decision trees and kernel ridge classification
-
 **Random Mixed:**
 - `RandomRegressor` - Randomly switches between CatBoost and LightGBM
 - `RandomClassifier` - Randomly switches between CatBoost and LightGBM
