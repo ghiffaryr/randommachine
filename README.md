@@ -1,5 +1,7 @@
 # RandomMachine
 
+[![PyPI Version](https://img.shields.io/pypi/v/randommachine.svg)](https://pypi.org/project/randommachine/) [![License](https://img.shields.io/pypi/l/randommachine.svg)](https://github.com/ghiffaryr/randommachine/blob/master/LICENSE.md)  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18687466.svg)](https://doi.org/10.5281/zenodo.18687466)
+
 Random ensemble learning library that combines LightGBM and CatBoost with random depth selection for improved model diversity.
 
 ## Installation
