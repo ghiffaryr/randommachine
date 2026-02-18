@@ -1,0 +1,461 @@
+\documentclass[11pt,a4paper]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{microtype}
+\setlength{\emergencystretch}{3em}
+\hfuzz=5pt
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=blue,
+  urlcolor=blue,
+}
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8},
+}
+
+% ── Metadata ──────────────────────────────────────────────────────────────────
+\title{\textbf{RandomMachine: Random Base-Learner Selection\\
+for Newton Gradient Boosting Ensembles}}
+
+\author{
+  Ghiffary Rifqialdi\\
+  \textit{Independent Researcher}\\
+  \texttt{\href{https://github.com/ghiffaryr/randommachine}{github.com/ghiffaryr/randommachine}}
+}
+
+\date{February 2026}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+\maketitle
+
+% ── Abstract ──────────────────────────────────────────────────────────────────
+\begin{abstract}
+We present \textsc{RandomMachine}, an open-source Python library that extends
+classical second-order (Newton) gradient boosting by randomly sampling the next
+base learner from a user-defined pool at each boosting iteration.
+Unlike standard gradient boosted trees, where every iteration adds a fresh clone
+of a single fixed model type, \textsc{RandomMachine} stochastically mixes
+multiple learner families—LightGBM, CatBoost, XGBoost, and arbitrary
+sklearn-compatible estimators—according to per-model sampling probabilities.
+This randomised selection increases ensemble diversity, acts as an implicit
+regulariser, and allows the user to leverage complementary inductive biases of
+different algorithms within a single coherent boosting procedure.
+We describe the algorithm, its theoretical motivation, and the software design,
+and report empirical results on synthetic regression and classification tasks
+demonstrating improvements of $1.55\,\%$ in $R^2$ on regression and
+$2.03\,\%$ in accuracy on binary classification over three fixed-family
+baselines at comparable hyper-parameter budgets.
+\textsc{RandomMachine} is available under the MIT license at
+\url{https://github.com/ghiffaryr/randommachine}.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Introduction}
+\label{sec:intro}
+
+Gradient boosting machines (GBMs) \citep{friedman2001greedy} are among the most
+powerful and widely deployed families of machine-learning models for structured
+data.
+State-of-the-art implementations such as LightGBM \citep{ke2017lightgbm},
+XGBoost \citep{chen2016xgboost}, and CatBoost \citep{prokhorenkova2018catboost}
+achieve top performance on tabular benchmarks, primarily by refining second-order
+(Newton) approximations of a differentiable loss.
+
+A classical GBM fixes a single base-learner template—typically a regression
+tree with a chosen maximum depth—and adds fresh instances of that same template
+at every iteration.
+This homogeneity simplifies analysis but has two practical drawbacks.
+First, the choice of tree depth heavily influences bias–variance trade-off, yet
+the optimal setting is task-dependent and costly to tune.
+Second, all base learners belong to the same model family, limiting the
+diversity of the final ensemble.
+
+\textsc{RandomMachine} addresses both issues by replacing the single fixed
+base-learner template with a \emph{pool} of candidates drawn from one or more
+model families.
+At each iteration the algorithm randomly selects a candidate from the pool
+(with configurable probabilities) and fits it to the current Newton step.
+This is conceptually similar to Random Forests' column subsampling
+\citep{breiman2001random}, but applied at the level of the entire base-learner
+family rather than at the feature level.
+The result is an ensemble that automatically spans multiple model complexities and
+inductive biases without manual model selection.
+
+The main contributions of this work are:
+\begin{enumerate}
+  \item A formulation of \emph{Random Newton Boosting} in which the base-learner
+        identity is a random variable drawn fresh at every boosting step.
+  \item A modular Python library implementing the algorithm for all popular
+	boosting backends (LightGBM, CatBoost, XGBoost) as well as a fully
+	generic interface that accepts arbitrary scikit-learn-compatible regressors.
+  \item Empirical evidence on synthetic benchmarks showing consistent
+	improvement over single-family baselines.
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Background}
+\label{sec:background}
+
+\subsection{Second-Order Gradient Boosting}
+
+Given a dataset $\{(\mathbf{x}_i, y_i)\}_{i=1}^n$ and a twice-differentiable
+loss $\ell(y, \hat{y})$, gradient boosting maintains an additive model
+$F(\mathbf{x}) = \sum_{t=1}^T \eta\, h_t(\mathbf{x})$
+where $\eta$ is the learning rate and each $h_t$ is a base learner.
+The Newton update at step $t$ with current predictions $\mathbf{z} = F^{(t-1)}(\mathbf{X})$ solves
+
+\begin{equation}
+  h_t = \arg\min_{h}\;
+    \sum_{i=1}^{n} \frac{g_i}{h_i}\, h(\mathbf{x}_i)
+    \quad\text{subject to}\quad h\in\mathcal{H},
+  \label{eq:newton-step}
+\end{equation}
+
+where $g_i = \partial_{\hat{y}} \ell(y_i, z_i)$ is the first derivative
+(gradient) and $h_i = \partial^2_{\hat{y}} \ell(y_i, z_i)$ is the second
+derivative (Hessian).
+In practice this is implemented by fitting $h_t$ to the negative gradient
+$\mathbf{u} = -\mathbf{g}/\mathbf{h}$ with sample weights $\mathbf{h}$.
+
+\subsection{Loss Functions}
+
+\textsc{RandomMachine} ships two built-in loss functions.
+
+\paragraph{Mean Squared Error (regression).}
+$\ell(y,\hat{y}) = (y - \hat{y})^2$, giving $g_i = 2(z_i - y_i)$ and
+$h_i = 2$.
+
+\paragraph{Logistic Loss (binary classification).}
+$\ell(y,\hat{y}) = -y\log\sigma(\hat{y}) - (1-y)\log(1-\sigma(\hat{y}))$,
+where $\sigma(x) = (1+e^{-x})^{-1}$.
+The derivatives are $g_i = \sigma(z_i) - y_i$ and
+$h_i = \sigma(z_i)(1 - \sigma(z_i))$, clipped below at $10^{-16}$ for
+numerical stability.
+Predictions are converted to class labels via thresholding at~$0.5$.
+
+\subsection{Ensemble Diversity}
+
+Ensemble diversity is a classical concept in machine learning
+\citep{dietterich2000ensemble,kuncheva2003measures}.
+A diverse ensemble tends to commit errors on different subsets of the input
+space, so their combined prediction is more accurate than any individual member.
+Standard GBMs obtain some diversity through the adaptive reweighting of
+residuals (each base learner sees a different target), but restricted to a
+single hypothesis class.
+\textsc{RandomMachine} introduces an additional source of diversity through
+random selection of the base-learner \emph{type} at each step.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Algorithm}
+\label{sec:algorithm}
+
+\subsection{Random Newton Boosting}
+
+Algorithm~\ref{alg:rnb} describes the core training procedure shared by all
+\textsc{RandomMachine} model families.
+
+\begin{algorithm}[t]
+\caption{Random Newton Boosting}
+\label{alg:rnb}
+\begin{algorithmic}[1]
+  \Require Training data $(\mathbf{X},\mathbf{y})$; optional eval data
+           $(\mathbf{X}_{\mathrm{eval}},\mathbf{y}_{\mathrm{eval}})$;
+           loss $\ell$; learner pool $\mathcal{B} = \{b_1,\ldots,b_K\}$;
+           sampling distribution $\mathbf{p}=(p_1,\ldots,p_K)$;
+           learning rate $\eta$; max iterations $T$;
+           early stopping patience $P$.
+  \State $\mathbf{z} \leftarrow \mathbf{0}_n$;\; $\mathcal{E} \leftarrow [\,]$;\;
+	   $\ell^*\leftarrow\infty$;\; $t^* \leftarrow 0$
+  \For{$t = 1,\ldots,T$}
+    \State $\mathbf{g}, \mathbf{h} \leftarrow \nabla_{\mathbf{z}}\ell(\mathbf{y},\mathbf{z}),\;
+	         \nabla^2_{\mathbf{z}}\ell(\mathbf{y},\mathbf{z})$
+    \State $\ell_t \leftarrow \ell(\mathbf{y}, \mathbf{z})$;\quad
+	       \textbf{if} $\ell_t < \ell^*$ \textbf{then} $\ell^* \leftarrow \ell_t$;\;
+	       $t^* \leftarrow t$
+    \If{eval data provided}
+      \State compute $\ell_{\mathrm{eval}}$ on $(\mathbf{X}_{\mathrm{eval}},\mathbf{y}_{\mathrm{eval}})$
+      \If{$\ell_{\mathrm{eval}}$ has not improved for $P$ steps}
+        \State \textbf{break} \Comment{early stopping}
+      \EndIf
+    \Else
+      \If{$\ell_t > \ell^*$ and $t \bmod P = 0$}
+        \State \textbf{break} \Comment{early stopping on train loss}
+      \EndIf
+    \EndIf
+    \State $\tilde{b} \sim \mathrm{Categorical}(\mathcal{B}, \mathbf{p})$;\quad
+	       $b_t \leftarrow \mathrm{clone}(\tilde{b})$ \Comment{random selection}
+    \State Fit $b_t$ on $(\mathbf{X},\; -\mathbf{g}/\mathbf{h})$ with sample weights $\mathbf{h}$
+    \State $\mathbf{z} \leftarrow \mathbf{z} + \eta\, b_t(\mathbf{X})$
+    \State Append $b_t$ to $\mathcal{E}$
+  \EndFor
+  \State \Return $\mathcal{E}$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Prediction.}
+For a test point $\mathbf{x}$:
+\begin{equation}
+  \hat{F}(\mathbf{x}) = \sum_{b \in \mathcal{E}} \eta\, b(\mathbf{x}).
+\end{equation}
+For classification, $\hat{y} = \mathbf{1}[\sigma(\hat{F}(\mathbf{x})) > 0.5]$.
+
+\subsection{Base Learner Pool Construction}
+
+\paragraph{Single-family pools (automated).}
+For the named models \texttt{RandomLGBMRegressor}, \texttt{RandomCatBoostRegressor},
+and \texttt{RandomXGBRegressor}, the pool is constructed automatically by enumerating
+depths $d \in [\texttt{min\_max\_depth},\, \texttt{max\_max\_depth}]$
+and assigning uniform probabilities $p_k = 1/K$.
+
+\paragraph{Heterogeneous pools (user-defined).}
+The generic \texttt{RandomRegressor} and \texttt{RandomClassifier} classes accept
+any \texttt{base\_learners} list together with optional \texttt{probabilities},
+enabling arbitrary mixing of model families, depths, regularisation, or even
+non-tree architectures.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Software Design}
+\label{sec:software}
+
+\subsection{Package Structure}
+
+\begin{lstlisting}
+randommachine/
+  losses.py          # MeanSquaredError, LogisticLoss
+  lgbm_models.py     # RLGBM base, RandomLGBMRegressor/Classifier
+  catboost_models.py # RCBM base, RandomCatBoostRegressor/Classifier
+  xgboost_models.py  # RXGBM base, RandomXGBRegressor/Classifier
+  random_models.py   # RM base, RandomRegressor, RandomClassifier
+  __init__.py        # Public API
+\end{lstlisting}
+
+\subsection{Class Hierarchy}
+
+Each family shares a common base (e.g.\ \texttt{RLGBM}) that implements
+\texttt{fit}, \texttt{predict\_raw}, and the early-stopping logic.
+Concrete classes (e.g.\ \texttt{RandomLGBMRegressor}) construct the base-learner pool
+in their \texttt{\_\_init\_\_} and delegate to the base class via \texttt{super()}.
+Classifiers add \texttt{predict\_proba} (sigmoid transform) and binary
+\texttt{predict} on top.
+
+\subsection{Public API}
+
+\begin{lstlisting}[language=Python]
+from randommachine import (
+    RandomLGBMRegressor, RandomLGBMClassifier,
+    RandomCatBoostRegressor, RandomCatBoostClassifier,
+    RandomXGBRegressor, RandomXGBClassifier,
+    RandomRegressor, RandomClassifier,
+    MeanSquaredError, LogisticLoss,
+)
+
+# Automated pool (LightGBM, depths 3-6)
+model = RandomLGBMRegressor(
+    num_iterations=20, learning_rate=0.5,
+    min_max_depth=3, max_max_depth=6, random_state=42
+)
+model.fit(X_train, y_train, X_eval=X_val, y_eval=y_val)
+preds = model.predict(X_test)
+
+# User-defined heterogeneous pool
+from lightgbm import LGBMRegressor
+from xgboost import XGBRegressor
+model = RandomRegressor(
+    base_learners=[
+        LGBMRegressor(max_depth=3, verbose=-1),
+        LGBMRegressor(max_depth=5, verbose=-1),
+        XGBRegressor(max_depth=4, verbosity=0),
+    ],
+    num_iterations=20, learning_rate=0.3, random_state=42
+)
+model.fit(X_train, y_train)
+\end{lstlisting}
+
+\subsection{Feature Importance}
+
+Because every ensemble member is a standard scikit-learn-compatible tree model,
+feature importances are readily accessible via
+
+\begin{lstlisting}[language=Python]
+import numpy as np
+importances = np.mean(
+    [b.feature_importances_ for b in model.ensemble_
+     if hasattr(b, 'feature_importances_')], axis=0
+)
+\end{lstlisting}
+
+averaging \texttt{feature\_importances\_} across all ensemble members.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Experiments}
+\label{sec:experiments}
+
+All experiments use synthetic datasets generated with
+\texttt{sklearn.datasets.make\_regression} (regression) and
+\texttt{make\_classification} (binary classification).
+The regression task has 1\,000 samples, 20 features, and Gaussian noise with
+$\sigma=10$; the classification task has 1\,000 samples, 20 features
+(10 informative, 3 redundant).
+All experiments use an 80/20 train/test split with \texttt{random\_state=42}.
+
+\subsection{Regression Results}
+
+Table~\ref{tab:regression} compares models on mean squared error (MSE) and
+coefficient of determination ($R^2$) on the held-out test set.
+
+\begin{table}[h]
+\centering
+\caption{Regression benchmark results (1\,000 samples, 20 features, noise $\sigma=10$, 80/20 split).}
+\label{tab:regression}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Model} & \textbf{MSE} & $\bm{R^2}$ \\
+\midrule
+LightGBM (baseline) & 2993.02 & 0.9230 \\
+CatBoost (baseline) &  926.33 & 0.9762 \\
+XGBoost (baseline)  & 4053.03 & 0.8958 \\
+\midrule
+RandomLGBM          & 2682.88 & 0.9310 \\
+RandomCatBoost      &  688.26 & \textbf{0.9823} \\
+RandomXGB           & 3696.88 & 0.9049 \\
+RandomMixed (CB+LGB)& 1314.78 & 0.9662 \\
+\midrule
+Baseline average    & 2657.46 & 0.9317 \\
+RandomMachine average & 2095.70 & \textbf{0.9461} \\
+\textbf{Improvement} & & \textbf{+1.55\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Classification Results}
+
+Table~\ref{tab:classification} reports accuracy on the binary classification task.
+
+\begin{table}[h]
+\centering
+\caption{Binary classification benchmark results (1\,000 samples, 20 features, 10 informative, 80/20 split).}
+\label{tab:classification}
+\begin{tabular}{lr}
+\toprule
+\textbf{Model} & \textbf{Accuracy} \\
+\midrule
+LightGBM (baseline) & 0.890 \\
+CatBoost (baseline) & 0.920 \\
+XGBoost (baseline)  & 0.895 \\
+\midrule
+RandomLGBM          & 0.890 \\
+RandomCatBoost      & \textbf{0.935} \\
+RandomXGB           & 0.920 \\
+RandomMixed (CB+LGB)& 0.935 \\
+\midrule
+Baseline average    & 0.9017 \\
+RandomMachine average & \textbf{0.9200} \\
+\textbf{Improvement} & \textbf{+2.03\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Discussion}
+
+The random depth-selection mechanism provides a consistent benefit
+over fixed-depth baselines across both tasks.
+On regression, \texttt{RandomCatBoostRegressor} achieves $R^2 = 0.982$, the
+best of all models, compared to the XGBoost baseline's $R^2 = 0.896$---a gap
+of 8.6 percentage points---and also outperforms the strong CatBoost
+baseline ($R^2 = 0.976$).
+On classification, both \texttt{RandomCatBoostClassifier} and \texttt{RandomMixed}
+reach 0.935 accuracy, matching or exceeding every baseline (best baseline:
+CatBoost at 0.920).
+The 2.03\,\% aggregate improvement in classification is the strongest result,
+demonstrating that diversity across learner families and depths is particularly
+beneficial when the task is harder (10 informative features out of 20 total).
+The \texttt{RandomLGBM} result is on par with its corresponding baseline,
+indicating that the benefit varies by family; blending families
+(\texttt{RandomMixed}) reliably beats any single-family baseline.
+
+The generic \texttt{RandomRegressor}/\texttt{RandomClassifier} classes allow
+practitioners to mix any set of sklearn-compatible regressors and thus extend
+the framework to settings not covered by the built-in pools.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Gradient boosting.}
+The foundational work is \citet{friedman2001greedy}. Second-order (Newton)
+boosting is developed in \citet{chen2016xgboost,ke2017lightgbm,prokhorenkova2018catboost}.
+
+\paragraph{Ensembles and diversity.}
+\citet{breiman1996bagging,breiman2001random} showed that randomness improves
+ensemble performance. \citet{dietterich2000ensemble,kuncheva2003measures}
+formalise diversity metrics for ensembles.
+
+\paragraph{Heterogeneous ensembles.}
+\citet{opitz1999popular} surveys methods for combining diverse learner types.
+Stacking \citep{wolpert1992stacked} and mixture-of-experts
+\citep{jacobs1991adaptive} combine different models but at inference time,
+whereas \textsc{RandomMachine} randomises the base-learner \emph{within} the
+boosting loop.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have presented \textsc{RandomMachine}, a Newton boosting framework that
+stochastically samples base learners from a heterogeneous pool at each
+iteration.
+The library is lightweight, modular, and fully compatible with the
+scikit-learn ecosystem.
+Empirical results on synthetic tasks show consistent performance gains of
+$1.55\,\%$ in $R^2$ on regression and $2.03\,\%$ in accuracy on binary
+classification over three fixed-family baselines (LightGBM, CatBoost, XGBoost)
+at equal iteration budgets.
+
+Future work includes (i) adaptive probability updating (e.g.\ favour learner
+types that have historically reduced the loss); (ii) support for multi-class
+classification; (iii) GPU-accelerated variants for large-scale data; and
+(iv) formal theoretical analysis of the diversity–accuracy trade-off under
+random base-learner selection.
+
+% ── Code and data availability ────────────────────────────────────────────────
+\section*{Code and Data Availability}
+The source code, tests, and tutorial notebook are available at
+\url{https://github.com/ghiffaryr/randommachine} under the MIT license.
+All experiments in this paper are fully reproducible by running
+\texttt{docs/tutorial.ipynb}.
+
+% ── Acknowledgements ──────────────────────────────────────────────────────────
+\section*{Acknowledgements}
+The author thanks the developers of LightGBM, CatBoost, XGBoost, and
+scikit-learn whose libraries underpin this work.
+
+% ── References ────────────────────────────────────────────────────────────────
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

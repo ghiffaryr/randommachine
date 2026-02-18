@@ -1,0 +1,83 @@
+\begin{thebibliography}{11}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Breiman(1996)]{breiman1996bagging}
+Leo Breiman.
+\newblock Bagging predictors.
+\newblock \emph{Machine Learning}, 24\penalty0 (2):\penalty0 123--140, 1996.
+\newblock \doi{10.1007/BF00058655}.
+
+\bibitem[Breiman(2001)]{breiman2001random}
+Leo Breiman.
+\newblock Random forests.
+\newblock \emph{Machine Learning}, 45\penalty0 (1):\penalty0 5--32, 2001.
+\newblock \doi{10.1023/A:1010933404324}.
+
+\bibitem[Chen and Guestrin(2016)]{chen2016xgboost}
+Tianqi Chen and Carlos Guestrin.
+\newblock {XGBoost}: A scalable tree boosting system.
+\newblock In \emph{Proceedings of the 22nd ACM SIGKDD International Conference
+  on Knowledge Discovery and Data Mining}, pages 785--794, 2016.
+\newblock \doi{10.1145/2939672.2939785}.
+
+\bibitem[Dietterich(2000)]{dietterich2000ensemble}
+Thomas~G Dietterich.
+\newblock Ensemble methods in machine learning.
+\newblock In \emph{International Workshop on Multiple Classifier Systems},
+  pages 1--15. Springer, 2000.
+
+\bibitem[Friedman(2001)]{friedman2001greedy}
+Jerome~H Friedman.
+\newblock Greedy function approximation: a gradient boosting machine.
+\newblock \emph{Annals of Statistics}, 29\penalty0 (5):\penalty0 1189--1232,
+  2001.
+\newblock \doi{10.1214/aos/1013203451}.
+
+\bibitem[Jacobs et~al.(1991)Jacobs, Jordan, Nowlan, and
+  Hinton]{jacobs1991adaptive}
+Robert~A Jacobs, Michael~I Jordan, Steven~J Nowlan, and Geoffrey~E Hinton.
+\newblock Adaptive mixtures of local experts.
+\newblock \emph{Neural Computation}, 3\penalty0 (1):\penalty0 79--87, 1991.
+\newblock \doi{10.1162/neco.1991.3.1.79}.
+
+\bibitem[Ke et~al.(2017)Ke, Meng, Finley, Wang, Chen, Ma, Ye, and
+  Liu]{ke2017lightgbm}
+Guolin Ke, Qi~Meng, Thomas Finley, Taifeng Wang, Wei Chen, Weidong Ma, Qiwei
+  Ye, and Tie-Yan Liu.
+\newblock {LightGBM}: A highly efficient gradient boosting decision tree.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~30, 2017.
+
+\bibitem[Kuncheva and Whitaker(2003)]{kuncheva2003measures}
+Ludmila~I Kuncheva and Christopher~J Whitaker.
+\newblock Measures of diversity in classifier ensembles and their relationship
+  with the ensemble accuracy.
+\newblock \emph{Machine Learning}, 51\penalty0 (2):\penalty0 181--207, 2003.
+\newblock \doi{10.1023/A:1022859003006}.
+
+\bibitem[Opitz and Maclin(1999)]{opitz1999popular}
+David Opitz and Richard Maclin.
+\newblock Popular ensemble methods: An empirical study.
+\newblock \emph{Journal of Artificial Intelligence Research}, 11:\penalty0
+  169--198, 1999.
+\newblock \doi{10.1613/jair.614}.
+
+\bibitem[Prokhorenkova et~al.(2018)Prokhorenkova, Gusev, Vorobev, Dorogush, and
+  Gulin]{prokhorenkova2018catboost}
+Liudmila Prokhorenkova, Gleb Gusev, Aleksandr Vorobev, Anna~Veronika Dorogush,
+  and Andrey Gulin.
+\newblock {CatBoost}: unbiased boosting with categorical features.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~31, 2018.
+
+\bibitem[Wolpert(1992)]{wolpert1992stacked}
+David~H Wolpert.
+\newblock Stacked generalization.
+\newblock \emph{Neural Networks}, 5\penalty0 (2):\penalty0 241--259, 1992.
+\newblock \doi{10.1016/S0893-6080(05)80023-1}.
+
+\end{thebibliography}

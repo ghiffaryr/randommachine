@@ -1,0 +1,11 @@
+include README.md
+include LICENSE
+include requirements.txt
+
+recursive-include randommachine *.py
+recursive-include docs *.ipynb
+recursive-include tests *.py
+
+global-exclude *.pyc __pycache__ .DS_Store
+
+
