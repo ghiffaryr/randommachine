@@ -7,16 +7,16 @@ import numpy as np
 
 class MeanSquaredError:
     """Mean squared error loss function."""
-    
+
     @staticmethod
     def compute_derivatives(y, f):
         """
         Compute first and second derivatives of the loss function.
-        
+
         Args:
             y (np.ndarray): True labels
             f (np.ndarray): Predictions
-            
+
         Returns:
             tuple: (gradient, hessian)
         """
@@ -28,11 +28,11 @@ class MeanSquaredError:
     def loss(y, f):
         """
         Compute the loss value.
-        
+
         Args:
             y (np.ndarray): True labels
             f (np.ndarray): Predictions
-            
+
         Returns:
             float: Loss value
         """
@@ -41,23 +41,23 @@ class MeanSquaredError:
 
 class LogisticLoss:
     """Logistic loss function for binary classification."""
-    
+
     @staticmethod
     def compute_derivatives(y, f):
         """
         Compute first and second derivatives of the loss function.
-        
+
         Args:
             y (np.ndarray): True labels (0 or 1)
             f (np.ndarray): Raw predictions (logits)
-            
+
         Returns:
             tuple: (gradient, hessian)
         """
         # Compute sigmoid probability: p = 1 / (1 + exp(-f))
         p = 1.0 / (1.0 + np.exp(-f))
         # Gradient of binary cross-entropy: p - y
-        g = p - y  
+        g = p - y
         # Hessian: p * (1 - p)
         h = p * (1.0 - p)
         # Clip hessian to avoid numerical issues
@@ -68,11 +68,11 @@ class LogisticLoss:
     def loss(y, f):
         """
         Compute the loss value.
-        
+
         Args:
             y (np.ndarray): True labels
             f (np.ndarray): Predictions
-            
+
         Returns:
             float: Loss value
         """

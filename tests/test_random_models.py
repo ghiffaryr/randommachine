@@ -42,9 +42,7 @@ class TestRandomRegressor:
     @pytest.fixture
     def regression_data(self):
         """Generate regression dataset."""
-        X, y = make_regression(
-            n_samples=200, n_features=10, noise=5, random_state=42
-        )
+        X, y = make_regression(n_samples=200, n_features=10, noise=5, random_state=42)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.3, random_state=42
         )
@@ -58,7 +56,7 @@ class TestRandomRegressor:
             loss=MeanSquaredError,
             num_iterations=5,
             learning_rate=0.3,
-            random_state=42
+            random_state=42,
         )
 
         assert model.num_iterations_ == 5
@@ -84,7 +82,7 @@ class TestRandomRegressor:
             num_iterations=5,
             learning_rate=0.5,
             early_stopping_rounds=10,
-            random_state=42
+            random_state=42,
         )
         model.fit(X_train, y_train)
 
@@ -105,7 +103,7 @@ class TestRandomRegressor:
             num_iterations=5,
             learning_rate=0.5,
             early_stopping_rounds=10,
-            random_state=42
+            random_state=42,
         )
         model.fit(X_train, y_train, X_eval=X_test, y_eval=y_test)
         assert len(model.ensemble_) > 0
@@ -114,15 +112,13 @@ class TestRandomRegressor:
         """Test that model accepts a heterogeneous pool of learners."""
         X_train, X_test, y_train, y_test = regression_data
 
-        learners = (
-            [LGBMRegressor(max_depth=d, n_estimators=10, verbose=-1) for d in range(3, 5)]
-            + [XGBRegressor(max_depth=d, n_estimators=10, verbosity=0) for d in range(3, 5)]
-        )
+        learners = [
+            LGBMRegressor(max_depth=d, n_estimators=10, verbose=-1) for d in range(3, 5)
+        ] + [
+            XGBRegressor(max_depth=d, n_estimators=10, verbosity=0) for d in range(3, 5)
+        ]
         model = RandomRegressor(
-            base_learners=learners,
-            num_iterations=3,
-            learning_rate=0.5,
-            random_state=42
+            base_learners=learners, num_iterations=3, learning_rate=0.5, random_state=42
         )
         model.fit(X_train, y_train)
         assert len(model.base_learners_) == len(learners)
@@ -136,8 +132,11 @@ class TestRandomClassifier:
     def classification_data(self):
         """Generate classification dataset."""
         X, y = make_classification(
-            n_samples=200, n_features=10, n_informative=8,
-            n_redundant=2, random_state=42
+            n_samples=200,
+            n_features=10,
+            n_informative=8,
+            n_redundant=2,
+            random_state=42,
         )
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.3, random_state=42
@@ -152,7 +151,7 @@ class TestRandomClassifier:
             loss=LogisticLoss,
             num_iterations=5,
             learning_rate=0.3,
-            random_state=42
+            random_state=42,
         )
 
         assert model.num_iterations_ == 5
@@ -169,7 +168,7 @@ class TestRandomClassifier:
             num_iterations=5,
             learning_rate=0.5,
             early_stopping_rounds=10,
-            random_state=42
+            random_state=42,
         )
         model.fit(X_train, y_train)
 
@@ -189,7 +188,7 @@ class TestRandomClassifier:
             num_iterations=5,
             learning_rate=0.5,
             early_stopping_rounds=10,
-            random_state=42
+            random_state=42,
         )
         model.fit(X_train, y_train)
 
@@ -202,15 +201,13 @@ class TestRandomClassifier:
         """Test that model accepts a heterogeneous pool of learners."""
         X_train, X_test, y_train, y_test = classification_data
 
-        learners = (
-            [LGBMRegressor(max_depth=d, n_estimators=10, verbose=-1) for d in range(3, 5)]
-            + [XGBRegressor(max_depth=d, n_estimators=10, verbosity=0) for d in range(3, 5)]
-        )
+        learners = [
+            LGBMRegressor(max_depth=d, n_estimators=10, verbose=-1) for d in range(3, 5)
+        ] + [
+            XGBRegressor(max_depth=d, n_estimators=10, verbosity=0) for d in range(3, 5)
+        ]
         model = RandomClassifier(
-            base_learners=learners,
-            num_iterations=3,
-            learning_rate=0.5,
-            random_state=42
+            base_learners=learners, num_iterations=3, learning_rate=0.5, random_state=42
         )
         model.fit(X_train, y_train)
         assert len(model.ensemble_) > 0

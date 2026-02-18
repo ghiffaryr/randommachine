@@ -25,8 +25,15 @@ class RXGBM:
         ensemble_ (list): Ensemble after training
     """
 
-    def __init__(self, loss, num_iterations, learning_rate, base_learners,
-                 probabilities, early_stopping_rounds):
+    def __init__(
+        self,
+        loss,
+        num_iterations,
+        learning_rate,
+        base_learners,
+        probabilities,
+        early_stopping_rounds,
+    ):
         self.loss_ = loss
         self.num_iterations_ = num_iterations
         self.learning_rate_ = learning_rate
@@ -35,7 +42,9 @@ class RXGBM:
         self.early_stopping_rounds = early_stopping_rounds
         self.ensemble_ = []
 
-    def fit(self, X, y, X_eval=None, y_eval=None, model_directory_path: str = "resources"):
+    def fit(
+        self, X, y, X_eval=None, y_eval=None, model_directory_path: str = "resources"
+    ):
         """
         Train the model.
 
@@ -80,27 +89,53 @@ class RXGBM:
                     lowest_eval_error = eval_error
                     lowest_eval_error_i = i
 
-                print('Iteration:', i, 'Train loss:', error, 'Lowest loss:', lowest_error,
-                      'at Iteration:', lowest_error_i, 'Eval loss:', eval_error,
-                      'Lowest eval loss:', lowest_eval_error, 'at Iteration:', lowest_eval_error_i)
+                print(
+                    "Iteration:",
+                    i,
+                    "Train loss:",
+                    error,
+                    "Lowest loss:",
+                    lowest_error,
+                    "at Iteration:",
+                    lowest_error_i,
+                    "Eval loss:",
+                    eval_error,
+                    "Lowest eval loss:",
+                    lowest_eval_error,
+                    "at Iteration:",
+                    lowest_eval_error_i,
+                )
 
-                if eval_error > lowest_eval_error and i % self.early_stopping_rounds == 0:
-                    print('Eval loss did not decrease anymore!', 'Early stopping...')
+                if (
+                    eval_error > lowest_eval_error
+                    and i % self.early_stopping_rounds == 0
+                ):
+                    print("Eval loss did not decrease anymore!", "Early stopping...")
                     break
             else:
-                print('Iteration:', i, 'Train loss:', error, 'Lowest loss:', lowest_error,
-                      'at Iteration:', lowest_error_i)
+                print(
+                    "Iteration:",
+                    i,
+                    "Train loss:",
+                    error,
+                    "Lowest loss:",
+                    lowest_error,
+                    "at Iteration:",
+                    lowest_error_i,
+                )
 
                 if error > lowest_error and i % self.early_stopping_rounds == 0:
-                    print('Loss did not decrease anymore!', 'Early stopping...')
+                    print("Loss did not decrease anymore!", "Early stopping...")
                     break
 
-            base_learner = clone(np.random.choice(self.base_learners_, p=self.probabilities_))
-            print('Learner chosen:', base_learner)
+            base_learner = clone(
+                np.random.choice(self.base_learners_, p=self.probabilities_)
+            )
+            print("Learner chosen:", base_learner)
             base_learner.fit(X, -np.divide(g, h), sample_weight=h)
             z += base_learner.predict(X) * self.learning_rate_
             self.ensemble_.append(base_learner)
-            print('\n')
+            print("\n")
 
     def predict_raw(self, X):
         """
@@ -136,10 +171,20 @@ class RandomXGBRegressor(RXGBM):
         random_state (int): Random state for reproducibility
     """
 
-    def __init__(self, loss=MeanSquaredError, num_iterations=20, learning_rate=0.5,
-                 min_max_depth=4, max_max_depth=8, early_stopping_rounds=3,
-                 tree_iterations=100, tree_learning_rate=0.5, tree_reg_lambda=3.0,
-                 task_type='cpu', random_state=0):
+    def __init__(
+        self,
+        loss=MeanSquaredError,
+        num_iterations=20,
+        learning_rate=0.5,
+        min_max_depth=4,
+        max_max_depth=8,
+        early_stopping_rounds=3,
+        tree_iterations=100,
+        tree_learning_rate=0.5,
+        tree_reg_lambda=3.0,
+        task_type="cpu",
+        random_state=0,
+    ):
 
         np.random.seed(random_state)
 
@@ -148,19 +193,27 @@ class RandomXGBRegressor(RXGBM):
 
         depth_range = range(min_max_depth, 1 + max_max_depth)
         for d in depth_range:
-            base_learners.append(XGBRegressor(
-                max_depth=d,
-                random_state=random_state,
-                device=task_type,
-                n_estimators=tree_iterations,
-                learning_rate=tree_learning_rate,
-                reg_lambda=tree_reg_lambda,
-                verbosity=0,
-            ))
+            base_learners.append(
+                XGBRegressor(
+                    max_depth=d,
+                    random_state=random_state,
+                    device=task_type,
+                    n_estimators=tree_iterations,
+                    learning_rate=tree_learning_rate,
+                    reg_lambda=tree_reg_lambda,
+                    verbosity=0,
+                )
+            )
             probabilities.append(1 / len(depth_range))
 
-        super().__init__(loss, num_iterations, learning_rate, base_learners,
-                         probabilities, early_stopping_rounds)
+        super().__init__(
+            loss,
+            num_iterations,
+            learning_rate,
+            base_learners,
+            probabilities,
+            early_stopping_rounds,
+        )
 
     def predict(self, X):
         """
@@ -193,10 +246,20 @@ class RandomXGBClassifier(RXGBM):
         random_state (int): Random state for reproducibility
     """
 
-    def __init__(self, loss=LogisticLoss, num_iterations=20, learning_rate=0.5,
-                 min_max_depth=4, max_max_depth=8, early_stopping_rounds=3,
-                 tree_iterations=100, tree_learning_rate=0.5, tree_reg_lambda=3.0,
-                 task_type='cpu', random_state=0):
+    def __init__(
+        self,
+        loss=LogisticLoss,
+        num_iterations=20,
+        learning_rate=0.5,
+        min_max_depth=4,
+        max_max_depth=8,
+        early_stopping_rounds=3,
+        tree_iterations=100,
+        tree_learning_rate=0.5,
+        tree_reg_lambda=3.0,
+        task_type="cpu",
+        random_state=0,
+    ):
 
         np.random.seed(random_state)
 
@@ -205,19 +268,27 @@ class RandomXGBClassifier(RXGBM):
 
         depth_range = range(min_max_depth, 1 + max_max_depth)
         for d in depth_range:
-            base_learners.append(XGBRegressor(
-                max_depth=d,
-                random_state=random_state,
-                device=task_type,
-                n_estimators=tree_iterations,
-                learning_rate=tree_learning_rate,
-                reg_lambda=tree_reg_lambda,
-                verbosity=0,
-            ))
+            base_learners.append(
+                XGBRegressor(
+                    max_depth=d,
+                    random_state=random_state,
+                    device=task_type,
+                    n_estimators=tree_iterations,
+                    learning_rate=tree_learning_rate,
+                    reg_lambda=tree_reg_lambda,
+                    verbosity=0,
+                )
+            )
             probabilities.append(1 / len(depth_range))
 
-        super().__init__(loss, num_iterations, learning_rate, base_learners,
-                         probabilities, early_stopping_rounds)
+        super().__init__(
+            loss,
+            num_iterations,
+            learning_rate,
+            base_learners,
+            probabilities,
+            early_stopping_rounds,
+        )
 
     def predict_proba(self, X):
         """
