@@ -9,10 +9,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="randommachine",
-    version="0.1.1",
+    version="0.1.2",
     author="Ghiffary Rifqialdi",
     author_email="grifqialdi@gmail.com",
-    description="Random ensemble learning with LightGBM and CatBoost",
+    description="Random ensemble learning",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/ghiffaryr/randommachine",
