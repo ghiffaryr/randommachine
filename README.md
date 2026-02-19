@@ -2,9 +2,15 @@
 
 [![PyPI Version](https://img.shields.io/pypi/v/randommachine.svg)](https://pypi.org/project/randommachine/) [![License](https://img.shields.io/pypi/l/randommachine.svg)](https://github.com/ghiffaryr/randommachine/blob/master/LICENSE.md)  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18687466.svg)](https://doi.org/10.5281/zenodo.18687466)
 
-Random ensemble learning library that combines LightGBM and CatBoost with random depth selection for improved model diversity.
+Random ensemble learning library that extends gradient boosting by randomly sampling base learners from a pool of LightGBM, CatBoost, XGBoost, and arbitrary scikit-learn-compatible estimators for improved ensemble diversity.
 
 ## Installation
+
+```bash
+pip install randommachine
+```
+
+Or install from source:
 
 ```bash
 git clone https://github.com/ghiffaryr/randommachine.git
@@ -53,25 +59,28 @@ probabilities = model.predict_proba(X_test)
 - `RandomLGBMClassifier` - Classification with random LightGBM base learners
 
 **CatBoost-based:**
-- `RandomCatBoostRegressor` - Regression with random CatBoost base learners  
+- `RandomCatBoostRegressor` - Regression with random CatBoost base learners
 - `RandomCatBoostClassifier` - Classification with random CatBoost base learners
 
-**Random Mixed:**
-- `RandomRegressor` - Randomly switches between CatBoost and LightGBM
-- `RandomClassifier` - Randomly switches between CatBoost and LightGBM
+**XGBoost-based:**
+- `RandomXGBRegressor` - Regression with random XGBoost base learners
+- `RandomXGBClassifier` - Classification with random XGBoost base learners
 
-## Tutorials
+**Generic (user-defined pool):**
+- `RandomRegressor` - Mix any sklearn-compatible regressors with custom probabilities
+- `RandomClassifier` - Mix any sklearn-compatible classifiers with custom probabilities
 
-Interactive Jupyter notebooks in the `/docs` folder:
-- [Tutorial](docs/tutorial.ipynb) - Getting started guide with **performance comparison vs plain LightGBM/CatBoost**
-- [Advanced Guide](docs/advanced_guide.ipynb) - Optimization and best practices
+## Tutorial
+
+An interactive Jupyter notebook is available in the `/docs` folder:
+- [Tutorial](docs/tutorial.ipynb) - Getting started guide with **performance comparison vs plain LightGBM, CatBoost, and XGBoost baselines**
 
 ```bash
 cd docs/
 jupyter notebook tutorial.ipynb
 ```
 
-The tutorial includes side-by-side comparisons showing whether RandomMachine actually outperforms baseline models.
+The tutorial includes side-by-side comparisons showing RandomMachine's improvement over fixed-family baselines.
 
 ## Development
 

@@ -9,7 +9,7 @@ from .hetero_models import HNBM, HeteroBoostRegressor, HeteroBoostClassifier
 from .random_models import RM, RandomRegressor, RandomClassifier
 from .xgboost_models import RXGBM, RandomXGBRegressor, RandomXGBClassifier
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     # Loss functions

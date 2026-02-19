@@ -3,10 +3,7 @@
 ## Notebooks
 
 - **[tutorial.ipynb](tutorial.ipynb)** - Getting started with RandomMachine  
-  Covers installation, basic usage, regression, classification, and model comparison.
-
-- **[advanced_guide.ipynb](advanced_guide.ipynb)** - Advanced techniques  
-  Algorithm internals, optimization, GPU usage, and real-world examples.
+  Covers installation, basic usage, regression, classification, and performance comparison vs LightGBM, CatBoost, and XGBoost baselines (+1.55% R² on regression, +2.03% accuracy on classification).
 
 ## Running
 
@@ -20,6 +17,5 @@ jupyter lab
 
 ## Learn Path
 
-1. Start with `tutorial.ipynb` for basics
-2. Read `advanced_guide.ipynb` for optimization
-3. Check main [README](../README.md) for API reference
+1. Start with `tutorial.ipynb` for basics and benchmarks
+2. Check the main [README](../README.md) for full API reference
